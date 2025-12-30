@@ -233,6 +233,8 @@ export default async function handler(req, res) {
     return
   }
 
+  const deploymentCommit = env.VERCEL_GIT_COMMIT_SHA ?? env.VERCEL_GITHUB_COMMIT_SHA ?? null
+
   try {
     const body = await parseRequestBody(req)
     const validation = validatePayload(body)
@@ -254,9 +256,17 @@ export default async function handler(req, res) {
       leadId,
       crm: crmResult,
       email: emailResult,
+      deploy: {
+        commit: deploymentCommit,
+      },
     })
   } catch (error) {
-    console.error('[LeadPipeline] Submission failed', error)
-    res.status(500).json({ error: error.message ?? 'Unhandled server error' })
+    console.error('[LeadPipeline] Submission failed', { deploymentCommit, error })
+    res.status(500).json({
+      error: error.message ?? 'Unhandled server error',
+      deploy: {
+        commit: deploymentCommit,
+      },
+    })
   }
 }
