@@ -109,25 +109,31 @@ async function pushToCrm(payload) {
     return { status: 'mocked' }
   }
 
-  const response = await fetch(crmWebhook, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(env.CRM_WEBHOOK_TOKEN
-        ? {
-            Authorization: `Bearer ${env.CRM_WEBHOOK_TOKEN}`,
-          }
-        : {}),
-    },
-    body: JSON.stringify(payload),
-  })
+  try {
+    const response = await fetch(crmWebhook, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(env.CRM_WEBHOOK_TOKEN
+          ? {
+              Authorization: `Bearer ${env.CRM_WEBHOOK_TOKEN}`,
+            }
+          : {}),
+      },
+      body: JSON.stringify(payload),
+    })
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`CRM webhook failed: ${response.status} ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[LeadPipeline] CRM webhook responded non-2xx', response.status, errorText)
+      return { status: 'failed', error: `CRM webhook failed: ${response.status}` }
+    }
+
+    return { status: 'forwarded' }
+  } catch (error) {
+    console.error('[LeadPipeline] CRM webhook network failure', error)
+    return { status: 'failed', error: error instanceof Error ? error.message : 'CRM webhook request failed' }
   }
-
-  return { status: 'forwarded' }
 }
 
 function getSmtpConfig() {
