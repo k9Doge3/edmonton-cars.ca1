@@ -195,7 +195,8 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState("all")
   const [selectedModel, setSelectedModel] = useState("")
   const [comparison, setComparison] = useState<CarRecord[]>([])
-  const [status, setStatus] = useState<"idle" | "sending" | "success">("idle")
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle")
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -269,16 +270,46 @@ export default function App() {
     setComparison((previous) => previous.filter((entry) => !(entry.make === car.make && entry.model === car.model)))
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (status === "sending") return
+    setErrorMessage(null)
     setStatus("sending")
     const form = event.currentTarget
-    window.setTimeout(() => {
+
+    const formData = new FormData(form)
+    const name = String(formData.get("name") ?? "").trim()
+    const email = String(formData.get("email") ?? "").trim()
+    const vehicle = String(formData.get("vehicle") ?? "").trim()
+
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          vehicle,
+          leadSource: "edmonton-cars.ca",
+          pipelineStage: "new",
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || `Request failed (${response.status})`)
+      }
+
       form.reset()
       setStatus("success")
       window.setTimeout(() => setStatus("idle"), 3500)
-    }, 700)
+    } catch (error) {
+      setStatus("error")
+      setErrorMessage(error instanceof Error ? error.message : "Unable to send request. Please try again.")
+      window.setTimeout(() => setStatus("idle"), 3500)
+    }
   }
 
   return (
@@ -358,6 +389,7 @@ export default function App() {
                   </button>
                   <p className="form-footnote">No automation. A specialist replies personally with availability and next steps.</p>
                   {status === "success" ? <p className="form-success">Thank you. Check your inbox for confirmation.</p> : null}
+                  {status === "error" ? <p className="form-success">{errorMessage ?? "Unable to send request. Please try again."}</p> : null}
                 </form>
               </div>
             </aside>
@@ -550,7 +582,7 @@ export default function App() {
               <h2>We keep capacity limited on purpose.</h2>
               <p>
                 Tell us what you are shopping for, and we will confirm if a slot is available this week. Email us directly at
-                <a href="mailto:hello@edmonton-cars.ca"> hello@edmonton-cars.ca</a> if you prefer.
+                <a href="mailto:ky.group.solutions@gmail.com"> ky.group.solutions@gmail.com</a> if you prefer.
               </p>
             </div>
             <button className="button button--ghost" type="button" onClick={() => scrollToId("lead-form")}>
@@ -563,8 +595,8 @@ export default function App() {
       <footer className="footer">
         <div className="container footer__inner">
           <p>&copy; {new Date().getFullYear()} Edmonton Cars Concierge. Clarity first.</p>
-          <a className="footer__link" href="mailto:hello@edmonton-cars.ca">
-            hello@edmonton-cars.ca
+          <a className="footer__link" href="mailto:ky.group.solutions@gmail.com">
+            ky.group.solutions@gmail.com
           </a>
         </div>
       </footer>

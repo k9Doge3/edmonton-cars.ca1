@@ -1,5 +1,24 @@
 # React + Vite
 
+## Lead Emails (SMTP)
+
+Lead submissions are handled by the serverless endpoint at `POST /api/leads`.
+
+Set these environment variables in your hosting provider (recommended: Gmail App Password):
+
+- `SMTP_EMAIL` (example: `ky.group.solutions@gmail.com`)
+- `SMTP_PASSWORD` (Gmail App Password; spaces are ignored)
+
+Optional (if you also want leads forwarded into a CRM/webhook):
+
+- `CRM_WEBHOOK_URL`
+- `CRM_WEBHOOK_TOKEN`
+
+Notes:
+
+- The endpoint sends two emails via SMTP: an internal notification to `SMTP_EMAIL`, and an auto-reply to the lead.
+- `RESEND_API_KEY` / Resend is not used.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
